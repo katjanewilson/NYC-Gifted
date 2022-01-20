@@ -68,3 +68,18 @@ ggmap(nyc.map)
 
 different types of map available: “terrain”, “satellite”, “roadmap”, “hybrid”
 
+# import the latitude data
+
+```{r}
+library(tidyverse)
+X2019_2020_School_Point_Locations <- read_csv("raw/2019_-_2020_School_Point_Locations.csv")
+
+
+### using the first column to identify school locations 
+
+
+```
+
+
+
+
