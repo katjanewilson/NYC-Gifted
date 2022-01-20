@@ -53,4 +53,20 @@ ggplot(data = world) +
     coord_sf(xlim = c(-87, -50), ylim = c(24.5, 33), expand = FALSE)
 ```
 
+#Plot out NYC
+```{r}
+library(ggplot2)
+library(ggmap)
+```
+
+```{r,include=FALSE}
+register_google("AIzaSyDW6QhqZ9G6Kdxyl5BZw9d1kfZhMrdseBQ")
+```
+
+```{r}
+nyc.map <- get_map(location = "New York City", zoom = 13, maptype = "hybrid")
+ggmap(nyc.map)
+```
+
+different types of map available: “terrain”, “satellite”, “roadmap”, “hybrid”
 
