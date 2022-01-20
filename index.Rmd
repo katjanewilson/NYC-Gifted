@@ -61,12 +61,8 @@ library(ggplot2)
 library(ggmap)
 ```
 
-```{r,include=FALSE}
-register_google("AIzaSyDW6QhqZ9G6Kdxyl5BZw9d1kfZhMrdseBQ")
-```
-
 ```{r}
-nyc.map <- get_map(location = "New York City", zoom = 13, maptype = "roadmap")
+nyc.map <- get_map(location = "Lower Manhattan, New York City", zoom = 15, maptype = "roadmap")
 ggmap(nyc.map)
 ```
 
