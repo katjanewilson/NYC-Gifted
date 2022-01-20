@@ -13,8 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 You can also embed plots, for example:
 
 ```{r pressure, echo=FALSE, message=FALSE, warning=FALSE}
-install.packages(c("cowplot", "googleway", "ggplot2", "ggrepel", 
-"ggspatial", "libwgeom", "sf", "rnaturalearth", "rnaturalearthdata"))
+#install.packages(c("cowplot", "googleway", "ggplot2", "ggrepel", 
+#"ggspatial", "libwgeom", "sf", "rnaturalearth", "rnaturalearthdata"))
 
 library("ggplot2")
 theme_set(theme_bw())
@@ -59,8 +59,12 @@ library(ggplot2)
 library(ggmap)
 ```
 
+```{r,include=FALSE}
+register_google("AIzaSyDW6QhqZ9G6Kdxyl5BZw9d1kfZhMrdseBQ")
+```
+
 ```{r}
-nyc.map <- get_map(location = "New York City", zoom = 13, maptype = "hybrid")
+nyc.map <- get_map(location = "New York City", zoom = 13, maptype = "roadmap")
 ggmap(nyc.map)
 ```
 
