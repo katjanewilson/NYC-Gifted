@@ -8,7 +8,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-## Map practice
+## Map practice TEST
+
+Small test
 
 You can also embed plots, for example:
 
