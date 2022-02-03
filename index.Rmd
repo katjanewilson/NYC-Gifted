@@ -101,10 +101,13 @@ nyc.map <- get_map(location = "Bronx, New York City", zoom = 10, maptype = "road
 ggmap(nyc.map, extend = "device", darken = 0.3) +
   stat_density2d(aes(x = long, y = lat, fill = ..level.., alpha = ..level..),
                  data = merged_plot, geom = "polygon", bins = 10) +
-  scale_fill_gradient2(low = "red", mid = "blue", high = "firebrick2", midpoint = 80,
+  scale_fill_gradient2(low = "yellow", mid = "blue", high = "firebrick2", midpoint = 80,
                        guide = guide_colorbar(title = "Level")) +
   theme_void()+
   geom_point(aes(x=long,y=lat,color=borough),data = gf_combined,size=0.7)
+```
+```{r}
+#https://stackoverflow.com/questions/45319970/generating-spatial-heat-map-via-ggmap-in-r-based-on-a-value
 ```
 
 
