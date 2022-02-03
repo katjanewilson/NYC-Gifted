@@ -67,12 +67,14 @@ gf_combined$long <- as.numeric(long)
 gf_combined$lat <- as.numeric(lat)
 gf_combined
 ```
+
 ```{r}
 #change the_geom to separate columns of long and lat data
 y <- str_extract(merged_combined$the_geom,"(?<=\\().*(?=\\))")
 y <- unlist(strsplit(y," "))
-y
+
 ```
+
 ```{r}
 #Extract long+lat data
 odd <- seq(1,2205,2)
