@@ -12,12 +12,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(ggplot2)
 library(ggmap)
+library(dplyr)
+library(tidyverse)
 ```
 
 # import the latitude data
 
 ```{r}
-library(tidyverse)
 X2019_2020_School_Point_Locations <- read_csv("raw/2019_-_2020_School_Point_Locations.csv")
 
 ### using the first column to identify school locations 
@@ -33,15 +34,14 @@ head(merged_gf)
 ```
 
 ```{r}
-library(dplyr)
 merged_combined <- na.omit(X2019_2020_School_Point_Locations %>% 
                          left_join(merged, by = c("Loc_Name"= "School Name")) %>%
-                         select(c("the_geom","Loc_Name","DBN","borough","Economic Need Index")))
+                         select(c("the_geom","Loc_Name","DBN","borough","Economic Need Index","% Black","% White","% Students with Disabilities","% Poverty")))
 head(merged_combined)
 
 gf_combined <- na.omit(X2019_2020_School_Point_Locations %>% 
                          left_join(merged_gf, by = c("Loc_Name"= "School Name")) %>%
-                         select(c("the_geom","Loc_Name","DBN","borough","Economic Need Index")))
+                         select(c("the_geom","Loc_Name","DBN","borough","Economic Need Index","% Black","% White","% Students with Disabilities","% Poverty")))
 
 head(gf_combined)
 ```
@@ -92,14 +92,15 @@ merged_combined
 ```
 
 ```{r}
-merged_plot <- merged_combined %>% mutate(across(where(is.numeric), ~ round(., 3))) %>% select(borough,"Economic Need Index",long,lat)
-names(merged_plot)[2] <- "ENI"
+merged_plot <- merged_combined %>% mutate(across(where(is.numeric), ~ round(., 3))) %>% select("Economic Need Index",long,lat)
+names(merged_plot)[1] <- "ENI"
 merged_plot$ENI <- merged_plot$ENI*100
 merged_plot <- na.omit(merged_plot)
 merged_plot
 ```
+
 ```{r}
-nyc.map <- get_map(location = "Bronx, New York City", zoom = 10, maptype = "roadmap")
+nyc.map <- get_map(location = "New York City", zoom = 10, maptype = "roadmap")
 ggmap(nyc.map, extend = "device", darken = 0.3) +
   stat_density2d(aes(x = long, y = lat, fill = ..level.., alpha = ..level..),
                  data = merged_plot, geom = "polygon", bins = 10) +
@@ -109,8 +110,31 @@ ggmap(nyc.map, extend = "device", darken = 0.3) +
   geom_point(aes(x=long,y=lat,color=borough),data = gf_combined,size=0.7)
 ```
 ```{r}
+nyc.map <- get_map(location = "New York City", zoom = 10, maptype = "roadmap")
+ggmap(nyc.map, extend = "device") +
+  stat_summary_2d(data = merged_plot,aes(x = long, y = lat, z = ENI),alpha = 0.6)+
+  scale_fill_gradient(name = "ENI", low = "green", high = "red")+
+  geom_point(aes(x=long,y=lat,color=borough),data = gf_combined,size=0.7)
+```
+
+```{r}
 #https://stackoverflow.com/questions/45319970/generating-spatial-heat-map-via-ggmap-in-r-based-on-a-value
 ```
 
+## plot with poverty
+```{r}
+head(merged_combined)
+merged_plot <- merged_combined %>% mutate(across(where(is.numeric), ~ round(., 3))) %>% select("% Students with Disabilities",long,lat)
+names(merged_plot)[1] <- "Dis"
+merged_plot$Dis <- merged_plot$Dis*100
+merged_plot <- na.omit(merged_plot)
+merged_plot
+```
 
-
+```{r}
+nyc.map <- get_map(location = "New York City", zoom = 10, maptype = "roadmap")
+ggmap(nyc.map, extend = "device") +
+  stat_summary_2d(data = merged_plot,aes(x = long, y = lat, z = Dis),alpha = 0.6)+
+  scale_fill_gradient(name = "% Dis", low = "green", high = "red")+
+  geom_point(aes(x=long,y=lat,color=borough),data = gf_combined,size=0.7)
+```
