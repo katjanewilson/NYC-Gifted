@@ -8,6 +8,162 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
+#### Descriptives 
+
+### deep dive into that dataset
+
+Regression without matching.
+
+put % black, % white, % asian, % ELL, huge correlation plot
+
+## think about the poverty vs. ENI, and if multicollinear
+
+
+### add correlation plot, regression\
+
+##other variables
+If you  can find that from literature
+
+
+
+```{r}
+library(tidyverse)
+school_wide <- read_csv("data/merged.csv")
+ela_wide <- read_csv("raw/ela_wide (1).csv")
+math_wide <- read_csv("raw/math_wide (1).csv")
+## bring together
+data <- merge(ela_wide, math_wide, by = "DBN")
+data <- merge(data, school_wide, by = "DBN")
+## small table
+small <- data %>%
+  select(DBN, `School Name`, class_option, `3 2019.y`, `4 2019.y`, `5 2019.y`,
+         `3 2019.x`, `4 2019.x`, `5 2019.x`, `Total Enrollment`, `% Poverty`,`% Students with Disabilities`, `Economic Need Index`, borough, school_type) %>%
+  mutate(GT_option = case_when(class_option %in% c("GT", "SC and GT") ~ "gifted option",
+                               class_option %in% c("no option", "SC") ~ "no gifted option"),
+         SC_option = case_when(class_option %in% c("SC", "SC and GT") ~ "SC option",
+                               class_option %in% c("no option", "GT") ~ "no SC option"),
+         treatment = ifelse(GT_option == "gifted option", 1, 0))
+
+#### 
+### STEP 2: Prevalence of the Option, Likelihood
+####
+percent <- function(x, digits = 2, format = "f", ...) {
+  paste0(formatC(100 * x, format = format, digits = digits, ...), "%")
+}
+liklihood <- small %>% 
+  group_by(borough) %>%
+  mutate(total=n()) %>%
+  group_by(class_option, borough) %>%
+  summarise(n=n(),
+            ratio = n/total) %>%
+  mutate(percentage = percent(ratio)) %>%
+  distinct() %>%
+  select(class_option, borough, percentage, ratio, n) %>%
+  arrange(borough)
+liklihood$ratio2 <- percent(liklihood$ratio)
+liklihood
+library(viridis)
+ggplot(data = liklihood, aes(fill = class_option, y = ratio,
+                       x = borough , label = ratio2))+
+  geom_bar(position = "dodge", stat = "identity") +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size=11),
+    axis.title.y = element_blank(),
+    axis.title.x = element_blank(),
+    panel.background = element_rect(fill = 'white'),
+    axis.text.x = element_text(face = "bold", size = 12),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank()
+  ) +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  scale_y_continuous(labels = scales::percent)+
+  geom_text(size = 4, position=position_dodge(width=1), vjust=-1, hjust = .4)
+
+
+#### 
+### STEP 3: Distribution of Variables
+####
+
+#### JESS: FOCUS HERE
+### Test Scores
+small$`3 2019.y` <-gsub(",","",small$`3 2019.y`,fixed = TRUE)
+small$`3 2019.x` <-gsub(",","",small$`3 2019.x`,fixed = TRUE)
+# small$`3 2019.y` <- as.numeric(small$`3 2019.y`)
+mean(small$`3 2019.y`)
+library(tidyverse)
+small<- small %>%
+  group_by(treatment) %>%
+  na.omit() %>%
+  filter(`3 2019.y` != "s") 
+small_object<- small %>%
+  summarise(mean_third_math = mean(as.numeric(`3 2019.y`)),
+            mean_third_ela = mean(as.numeric(`3 2019.x`)))
+small_object                         
+### NOTE: for our GT study, we are going to have to split by has GT, doesn't have GT,
+## and group by SC and GT
+
+table(small$GT_option)
+# create binary of GT or not
+
+### GT Option by Economic Need, Poverty, Enrollment
+small%>%
+  group_by(GT_option) %>%
+  summarise(mean_ec = mean(`Economic Need Index`),
+            mean_poverty = mean(`% Poverty`),
+            total = mean(`Total Enrollment`))
+small%>%
+  group_by(SC_option) %>%
+  summarise(mean_ec = mean(`Economic Need Index`),
+            mean_poverty = mean(`% Poverty`),
+            total = mean(`Total Enrollment`))
+
+#### GT Option by Borough
+### boroughs
+small %>%
+  group_by(borough, GT_option) %>%
+  summarise(mean_ec = mean(`Economic Need Index`),
+            mean_poverty = mean(`% Poverty`),
+            total = mean(`Total Enrollment`))
+
+
+### GT Option by School Type *** NOTE: Middle Schools again have the biggest difference
+small %>%
+  group_by(school_type, GT_option) %>%
+  summarise(mean_ec = mean(`Economic Need Index`),
+            mean_poverty = mean(`% Poverty`),
+            total = mean(`Total Enrollment`))
+
+
+### regression just for third grade, ELA and Math scores  PART 1: bunch of these
+
+
+
+names(small)
+mod <- lm(`3 2019.y` ~ treatment + `Economic Need Index` + `Total Enrollment`, data =small)
+summary(mod)
+table(small$treatment)
+mod <- lm(`3 2019.x` ~ treatment, data =small)
+summary(mod)
+
+### matched
+library(MatchIt)
+school_nearest <- matchit(formula = treatment ~ `Economic Need Index` + `Total Enrollment` +`% Students with Disabilities`, 
+                          data = small,
+                          method = "nearest",
+                          family = "binomial",
+                          caliper = 0.25,
+                          ratio = 6)
+
+nearest_matched <- match.data(school_nearest)
+
+model_n <- lm(`3 2019.x` ~ treatment, data = nearest_matched)
+summary(model_n)
+
+
+```
+
+
 #Plot out NYC
 ```{r}
 library(ggplot2)
@@ -92,12 +248,16 @@ merged_combined
 ```
 
 ```{r}
-merged_plot <- merged_combined %>% mutate(across(where(is.numeric), ~ round(., 3))) %>% select(borough,"Economic Need Index",long,lat)
-names(merged_plot)[2] <- "ENI"
+merged_plot <- merged_combined %>%
+# mutate(across(where(is.numeric), ~ round(., 3))) 
+  select("Economic Need Index",long,lat)
+names(merged_plot)[1] <- "ENI"
 merged_plot$ENI <- merged_plot$ENI*100
 merged_plot <- na.omit(merged_plot)
 merged_plot
 ```
+
+
 ```{r}
 nyc.map <- get_map(location = "Bronx, New York City", zoom = 10, maptype = "roadmap")
 ggmap(nyc.map, extend = "device", darken = 0.3) +
@@ -108,8 +268,96 @@ ggmap(nyc.map, extend = "device", darken = 0.3) +
   theme_void()+
   geom_point(aes(x=long,y=lat,color=borough),data = gf_combined,size=0.7)
 ```
+
+### NYC TRY
+
 ```{r}
-#https://stackoverflow.com/questions/45319970/generating-spatial-heat-map-via-ggmap-in-r-based-on-a-value
+library(ggmap)
+library(data.table)
+
+nyc.map <- get_map(location = "Bronx, New York City", zoom = 10, maptype = "roadmap")
+data <- setDT(merged_plot)
+
+# generate bins for the x, y coordinates
+xbreaks <- seq(floor(min(data$lat)), ceiling(max(data$lat)), by = 0.01)
+ybreaks <- seq(floor(min(data$long)), ceiling(max(data$long)), by = 0.01)
+
+# allocate the data points into the bins
+data$latbin <- xbreaks[cut(data$lat, breaks = xbreaks, labels=F)]
+data$longbin <- ybreaks[cut(data$long, breaks = ybreaks, labels=F)]
+
+# Summarise the data for each bin
+datamat <- data[, list(ENI = mean(ENI)), 
+                 by = c("latbin", "longbin")]
+
+# Merge the summarised data with all possible x, y coordinate combinations to get 
+# a value for every bin
+datamat <- merge(setDT(expand.grid(latbin = xbreaks, longbin = ybreaks)), datamat, 
+                 by = c("latbin", "longbin"), all.x = TRUE, all.y = FALSE)
+
+# Fill up the empty bins 0 to smooth the contour plot
+datamat[is.na(ENI), ]$ENI <- 0
+max(datamat$latbin)
+max(datamat$longbin)
+max(datamat$ENI)
+
+# Plot the contours
+ggmap(nyc.map, extent = "device") +
+  stat_contour(data = datamat, aes(x = longbin, y = latbin, z = ENI, 
+               fill = ..level.., alpha = ..level..), geom = 'polygon', binwidth = 100) +
+  scale_fill_gradient(name = "Price", low = "green", high = "red")
+
+
+```
+
+
+
+
+
+
+### stack overflow example 
+
+```{r}
+library(ggmap)
+library(data.table)
+
+map <- get_map(location = "austin", zoom = 12)
+data <- setDT(read.csv("data/sample_data.csv", stringsAsFactors = FALSE))
+
+
+# convert the rate from string into numbers
+data[, average_rate_per_night := as.numeric(gsub(",", "", 
+       substr(average_rate_per_night, 2, nchar(average_rate_per_night))))]
+
+# generate bins for the x, y coordinates
+xbreaks <- seq(floor(min(data$latitude)), ceiling(max(data$latitude)), by = 0.01)
+ybreaks <- seq(floor(min(data$longitude)), ceiling(max(data$longitude)), by = 0.01)
+
+# allocate the data points into the bins
+data$latbin <- xbreaks[cut(data$latitude, breaks = xbreaks, labels=F)]
+data$longbin <- ybreaks[cut(data$longitude, breaks = ybreaks, labels=F)]
+
+# Summarise the data for each bin
+datamat <- data[, list(average_rate_per_night = mean(average_rate_per_night)), 
+                 by = c("latbin", "longbin")]
+
+# Merge the summarised data with all possible x, y coordinate combinations to get 
+# a value for every bin
+datamat <- merge(setDT(expand.grid(latbin = xbreaks, longbin = ybreaks)), datamat, 
+                 by = c("latbin", "longbin"), all.x = TRUE, all.y = FALSE)
+
+# Fill up the empty bins 0 to smooth the contour plot
+datamat[is.na(average_rate_per_night), ]$average_rate_per_night <- 0
+
+max(datamat$latbin)
+max(datamat$longbin)
+max(datamat$average_rate_per_night)
+
+# Plot the contours
+ggmap(map, extent = "device") +
+  stat_contour(data = datamat, aes(x = longbin, y = latbin, z = average_rate_per_night, 
+               fill = ..level.., alpha = ..level..), geom = 'polygon', binwidth = 100) +
+  scale_fill_gradient(name = "Price", low = "green", high = "red") 
 ```
 
 
